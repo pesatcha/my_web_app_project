@@ -1,0 +1,16 @@
+.notification-count {
+    position: absolute;
+    top: 4mm; /* ปรับตำแหน่งจากด้านบน */
+    right: 0; /* ปรับตำแหน่งจากด้านขวา */
+    min-width: 20px; /* ความกว้างขั้นต่ำ */
+    height: 20px; /* ความสูง */
+    padding: 2px; /* ช่องว่างภายใน */
+    background-color: red; /* สีพื้นหลัง */
+    border-radius: 50%; /* ทำให้เป็นวงกลม */
+    color: white; /* สีตัวอักษร */
+    font-size: 12px; /* ขนาดตัวอักษร */
+    text-align: center; /* จัดข้อความตรงกลาง */
+    line-height: 16px; /* ความสูงของบรรทัด */
+    display: none; /* ซ่อนเริ่มต้น */
+    transform: translate(0.5%, -0.5%); /* ปรับตำแหน่งให้ตรงกลาง */
+}
