@@ -6,12 +6,26 @@ $itemsPerPage = 20;
 // คำนวณหน้า
 $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $offset = ($page - 1) * $itemsPerPage;
+// รับค่าการเรียงลำดับจาก GET (ถ้าไม่มีให้ใช้ค่าเริ่มต้น)
+$orderBy = isset($_GET['orderBy']) && in_array($_GET['orderBy'], ['score_asc', 'score_desc']) ? $_GET['orderBy'] : 'createdAt_desc';
+
+// กำหนด ORDER BY ตามค่าที่ผู้ใช้เลือก
+$orderColumn = "s.createdAt";
+$orderDirection = "DESC"; // ค่าเริ่มต้นเรียงตามวันที่จากล่าสุด
+
+if ($orderBy == "score_asc") {
+    $orderColumn = "s.score";
+    $orderDirection = "ASC";
+} elseif ($orderBy == "score_desc") {
+    $orderColumn = "s.score";
+    $orderDirection = "DESC";
+}
 
 $sql = "SELECT s.id, s.acc_id, a.name, a.phone, a.faculty, s.createdAt, f.nameType, s.score, s.viewed
 FROM save_data s 
 JOIN acc_user a ON s.acc_id = a.id 
 JOIN form_type f ON s.formtype_id = f.id
-ORDER BY s.createdAt DESC
+ORDER BY $orderColumn $orderDirection
 LIMIT :limit OFFSET :offset";
 
 
@@ -40,7 +54,7 @@ function convertToThaiTime($datetime)
 // ตรวจสอบข้อมูลในฐานข้อมูล
 $duplicateSql = "SELECT acc_id, createdAt, COUNT(*) AS count 
                  FROM save_data 
-                 GROUP BY acc_id, createdAt"; 
+                 GROUP BY acc_id, createdAt";
 
 $duplicateStmt = $conn->query($duplicateSql);
 $duplicates = $duplicateStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -59,7 +73,8 @@ $duplicates = $duplicateStmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="../assets/css/notification.css" />
     <style>
         .not-viewed {
-            color: rgba(186, 40, 235, 0.5) !important; /* อาจทำให้ไอคอนดูจาง */
+            color: rgba(186, 40, 235, 0.5) !important;
+            /* อาจทำให้ไอคอนดูจาง */
             /* เปลี่ยนสีตัวอักษร */
             font-weight: bold;
             /* ทำให้ตัวหนา */
@@ -105,6 +120,11 @@ $duplicates = $duplicateStmt->fetchAll(PDO::FETCH_ASSOC);
                                     <input type="date" id="filterDate" class="form-control w-20">
                                     <input type="text" id="searchInput" class="form-control w-20"
                                         placeholder="ค้นหารายชื่อ">
+                                    <select id="orderBy" class="form-control w-25">
+                                        <option value="createdAt_desc">ล่าสุด</option>
+                                        <option value="score_asc">คะแนน น้อยไปมาก</option>
+                                        <option value="score_desc">คะแนน มากไปน้อย</option>
+                                    </select>
                                 </div>
                                 <hr>
                                 <div data-simplebar class="position-relative">
@@ -201,17 +221,28 @@ $duplicates = $duplicateStmt->fetchAll(PDO::FETCH_ASSOC);
                                             </tbody>
                                         </table>
                                         <div class="pagination text-center mt-3">
-                                            <?php if ($page > 1): ?>
-                                                <a href="?page=<?= $page - 1 ?>" class="btn btn-danger btn-sm">ก่อนหน้า</a>
+                                            <?php
+                                            // ดึงค่าการค้นหาเพื่อใช้กับ Pagination
+                                            $queryParams = $_GET;
+                                            unset($queryParams['page']);
+
+                                            $queryString = http_build_query($queryParams);
+
+                                            if ($page > 1):
+                                                ?>
+                                                <a href="?page=<?= $page - 1 ?>&<?= $queryString ?>"
+                                                    class="btn btn-danger btn-sm">ก่อนหน้า</a>
                                             <?php endif; ?>
 
                                             <span class="mx-3">หน้า <?= $page ?> จาก <?= $totalPages ?></span>
 
                                             <?php if ($page < $totalPages): ?>
-                                                <a href="?page=<?= $page + 1 ?>" class="btn btn-danger btn-sm">ถัดไป</a>
+                                                <a href="?page=<?= $page + 1 ?>&<?= $queryString ?>"
+                                                    class="btn btn-danger btn-sm">ถัดไป</a>
+                                            <?php else: ?>
+                                                <span class="btn btn-secondary btn-sm disabled">สิ้นสุดข้อมูล</span>
                                             <?php endif; ?>
-                                        </div>
-
+                                        </div>8
                                     </div>
                                 </div>
                                 <?php include 'modal/popup_meeting.php'; ?>
@@ -237,6 +268,22 @@ $duplicates = $duplicateStmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
+    <script>
+        document.getElementById("orderBy").addEventListener("change", function () {
+            const selectedOrder = this.value;
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set("orderBy", selectedOrder);
+            window.location.search = urlParams.toString();
+        });
+
+        // ตั้งค่าเริ่มต้นของ dropdown ตามค่าที่ได้รับจาก GET
+        document.addEventListener("DOMContentLoaded", function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderBy = urlParams.get("orderBy") || "createdAt_desc";
+            document.getElementById("orderBy").value = orderBy;
+        });
+    </script>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="../assets/libs/jquery/dist/jquery.min.js"></script>
     <script src="../assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
